@@ -15,12 +15,14 @@ exclude = [
 
 [dependencies]
 candle-core = {git= "https://github.com/bybyset/candle", branch = "main", default-features = false}
-candle-nn = {git= "https://github.com/bybyset/candle", branch = "main"}
+candle-nn = {git= "https://github.com/bybyset/candle", branch = "main", default-features = false}
 ciborium = "0.2.1"
 hound = "3.4.5"
 rubato = { version = "0.14.1", default-features = false }
 rustfft = { version = "6.1.0", default-features = false }
 serde =  { version = "1.0.188", features = ["derive"], default-features = false }
+
+
 
 [features]
 default = ["debug"]
