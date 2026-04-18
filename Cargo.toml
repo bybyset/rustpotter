@@ -14,8 +14,8 @@ exclude = [
 ]
 
 [dependencies]
-candle-core = "0.10.2"
-candle-nn = "0.10.2"
+candle-core = {git= "https://github.com/bybyset/candle", branch = "main", default-features = false}
+candle-nn = {git= "https://github.com/bybyset/candle", branch = "main"}
 ciborium = "0.2.1"
 hound = "3.4.5"
 rubato = { version = "0.14.1", default-features = false }

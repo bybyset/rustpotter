@@ -78,8 +78,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 [[package]]
 name = "candle-core"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bd9895436c1ba5dc1037a19935d084b838db066ff4e15ef7dded020b7c12a4a"
+source = "git+https://github.com/bybyset/candle?branch=main#582b8467ee22b8ce3b6e52bd21c8c1101eec6ae8"
 dependencies = [
  "byteorder",
  "float8",
@@ -102,8 +101,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9317a09d6530b758990ed7f625ac69ff43653bc9ee28b0464644ad1169ada87"
+source = "git+https://github.com/bybyset/candle?branch=main#582b8467ee22b8ce3b6e52bd21c8c1101eec6ae8"
 dependencies = [
  "candle-core",
  "half 2.7.1",
