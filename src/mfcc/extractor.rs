@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, sync::Arc};
 
-use rustfft::{num_complex::Complex32, FftPlanner};
+use rustfft::{num_complex::Complex32, Fft, FftPlanner};
 
 pub struct MfccExtractor {
     num_coefficients: usize,
@@ -13,6 +13,9 @@ pub struct MfccExtractor {
     filter_bank: Vec<Vec<f32>>,
     hamming_window: Vec<f32>,
     samples: Vec<f32>,
+    fft: Arc<dyn Fft<f32>>,
+    fft_buffer: Vec<Complex32>,
+    magnitude_spectrum_buffer: Vec<f32>,
 }
 
 impl MfccExtractor {
@@ -26,6 +29,8 @@ impl MfccExtractor {
         let min_frequency = 0;
         let max_frequency = sample_rate / 2;
         let magnitude_spectrum_size = samples_per_frame / 2;
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(samples_per_frame);
         MfccExtractor {
             samples: vec![],
             samples_per_shift,
@@ -42,6 +47,9 @@ impl MfccExtractor {
             ),
             hamming_window: Self::new_hamming_window(samples_per_frame),
             sample_rate,
+            fft,
+            fft_buffer: vec![Complex32 { re: 0., im: 0. }; samples_per_frame],
+            magnitude_spectrum_buffer: vec![0.; magnitude_spectrum_size],
         }
     }
     pub fn set_out_size(&mut self, out_size: u16) {
@@ -71,16 +79,16 @@ impl MfccExtractor {
         if self.samples.len() >= self.samples_per_frame {
             self.samples.drain(0..new_samples.len());
             self.samples.append(&mut new_samples);
-            Some(self.extract_mfccs(&self.samples[0..self.samples_per_frame]))
+            Some(self.extract_mfccs())
         } else {
             self.samples.append(&mut new_samples);
             None
         }
     }
-    fn extract_mfccs(&self, samples: &[f32]) -> Vec<f32> {
-        let magnitude_spectrum = self.calculate_magnitude_spectrum(samples);
+    fn extract_mfccs(&mut self) -> Vec<f32> {
+        self.calculate_magnitude_spectrum();
         let mut mfcc_frame =
-            self.calculate_mel_frequency_cepstral_coefficients(&magnitude_spectrum);
+            self.calculate_mel_frequency_cepstral_coefficients(&self.magnitude_spectrum_buffer);
         mfcc_frame.drain(0..1);
         mfcc_frame
     }
@@ -98,19 +106,19 @@ impl MfccExtractor {
 
     //==================================================================
     // Feature extraction utils
-    fn calculate_magnitude_spectrum(&self, audio_frame: &[f32]) -> Vec<f32> {
-        let mut planner = FftPlanner::new();
-        let fft = planner.plan_fft_forward(self.samples_per_frame);
-        let mut buffer = (0..self.samples_per_frame)
-            .map(|i| Complex32 {
-                re: audio_frame[i] * self.hamming_window[i],
-                im: 0.,
-            })
-            .collect::<Vec<_>>();
-        fft.process(&mut buffer);
-        (0..self.magnitude_spectrum_size)
-            .map(|i| ((buffer[i].re * buffer[i].re) + (buffer[i].im * buffer[i].im)).sqrt())
-            .collect()
+    fn calculate_magnitude_spectrum(&mut self) {
+        let audio_frame = &self.samples[0..self.samples_per_frame];
+        let hamming_window = &self.hamming_window;
+        let fft_buffer = &mut self.fft_buffer;
+        for (i, sample) in audio_frame.iter().enumerate() {
+            fft_buffer[i].re = *sample * hamming_window[i];
+            fft_buffer[i].im = 0.;
+        }
+        self.fft.process(fft_buffer);
+        for (i, magnitude) in self.magnitude_spectrum_buffer.iter_mut().enumerate() {
+            let bin = fft_buffer[i];
+            *magnitude = ((bin.re * bin.re) + (bin.im * bin.im)).sqrt();
+        }
     }
     fn new_hamming_window(samples_per_frame: usize) -> Vec<f32> {
         let ns_minus_1 = samples_per_frame - 1;
